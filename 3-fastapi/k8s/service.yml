@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: predictor
+spec:
+  type: NodePort
+  selector:
+    app: predictor
+  ports:
+  - port: 80
+    nodePort: 30080

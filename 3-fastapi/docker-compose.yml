@@ -1,0 +1,19 @@
+services:
+  myapp:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/container4ml-fastapi:latest
+    build:
+      args:
+        - AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}
+    ports:
+      - "3333:80"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DEBUG=true
+      - REDISHOST=myredis
+      - MODEL_NAME=A
+    volumes:
+      - ${PWD}:/app
+    depends_on:
+      - myredis
+  myredis:
+    image: redis:alpine

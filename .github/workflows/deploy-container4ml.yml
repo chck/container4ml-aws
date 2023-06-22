@@ -1,0 +1,91 @@
+name: deploy-container4ml
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  infra:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "container4ml deploy job triggered."
+  changes:
+    runs-on: ubuntu-latest
+    needs: infra
+    outputs:
+      trainer: ${{ steps.filter.outputs.trainer }}
+      predictor: ${{ steps.filter.outputs.predictor }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            trainer:
+              - '2-jupyter/**'
+            predictor:
+              - '3-fastapi/**'
+  trainer:
+    needs: changes
+    if: ${{ needs.changes.outputs.trainer == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: ./2-jupyter
+    steps:
+      - uses: actions/checkout@v3
+      - uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.GITHUB_ACTIONS_AWS_ROLE }}
+          aws-region: ap-northeast-1
+      - name: Download latest ml model
+        run: |
+          MODEL_VERSION=$(aws s3api list-objects-v2 --bucket ${{ secrets.AWS_BUCKET }} --query 'sort_by(Contents, &LastModified)[-2].Key' --output=text | sed -En "s/models\/ua_classifier\/([0-9]{12}).bin/\1/p")
+          aws s3 cp s3://${{ secrets.AWS_BUCKET }}/models/ua_classifier/${MODEL_VERSION}.bin ua_classifier.bin
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      - name: Build app and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: container4ml-jupyter
+          DOCKER_BUILDKIT: 1
+        run: |
+          IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY
+          IMAGE_TAG=$(git rev-parse --short "$GITHUB_SHA")
+          docker build -t $IMAGE:$IMAGE_TAG -t $IMAGE:latest --cache-from $IMAGE:latest .
+          docker push $IMAGE:$IMAGE_TAG
+          docker push $IMAGE:latest
+  predictor:
+    needs: changes
+    if: ${{ needs.changes.outputs.predictor == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: ./3-fastapi
+    steps:
+      - uses: actions/checkout@v3
+      - uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.GITHUB_ACTIONS_AWS_ROLE }}
+          aws-region: ap-northeast-1
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      - name: Build app and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: container4ml-fastapi   
+          DOCKER_BUILDKIT: 1
+        run: |
+          IMAGE=$ECR_REGISTRY/$ECR_REPOSITORY
+          IMAGE_TAG=$(git rev-parse --short "$GITHUB_SHA")
+          docker build --build-arg AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }} -t $IMAGE:$IMAGE_TAG -t $IMAGE:latest --cache-from $IMAGE:latest .
+          docker push $IMAGE:$IMAGE_TAG
+          docker push $IMAGE:latest

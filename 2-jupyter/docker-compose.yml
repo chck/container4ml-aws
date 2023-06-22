@@ -1,0 +1,8 @@
+services:
+  jupyter:
+    image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/container4ml-jupyter:${USER}
+    build: .
+    ports:
+      - "8888:8888"
+    volumes:
+      - ${PWD}:/app

@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: predictor-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: predictor
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: predictor
+    spec:
+      containers:
+      - name: predictor-api
+        image: nginx
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        env:
+        - name: PYTHONUNBUFFERED
+          value: "1"
+        - name: DEBUG
+          value: "1"
+        - name: REDISHOST
+          value: "myredis"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: predictor
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: predictor
+    spec:
+      containers:
+        - name: database
+          image: redis:alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 6379

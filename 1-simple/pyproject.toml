@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "container4ml-simple"
+version = "0.1.0"
+description = ""
+authors = ["chck <shimekiri.today@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+scikit-learn = "^1.0.1"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

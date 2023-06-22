@@ -1,0 +1,4 @@
+services:
+  simple:
+    image: chck/container4ml-simple:1.0
+    build: .
