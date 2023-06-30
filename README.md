@@ -1,5 +1,7 @@
 # Container Tutorial for Machine Learning
 
+Blog (Japanese): https://developers.cyberagent.co.jp/blog/archives/42762/
+
 ## Prerequisites
 | Software                   | Install (Mac)              |
 |----------------------------|----------------------------|
